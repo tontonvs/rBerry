@@ -1,0 +1,70 @@
+name: Build rBerry APK
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleOpenDebug --stacktrace
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          find app/build/outputs/apk/open/debug -name '*.apk' -exec cp {} dist/rBerry-debug.apk \;
+          ls -lh dist
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rBerry-debug-apk
+          path: dist/rBerry-debug.apk
+
+      - name: Publish APK to the "latest" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-build --cleanup-tag --yes || true
+          gh release create latest-build dist/rBerry-debug.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "rBerry latest debug build" \
+            --notes "Automated debug build of commit $GITHUB_SHA. Install on a phone by opening this page and downloading rBerry-debug.apk."

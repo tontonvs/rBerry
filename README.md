@@ -1,40 +1,30 @@
-# J2ME-Loader 
+# rBerry
 
-[![Crowdin](https://d322cqt584bo4o.cloudfront.net/j2me-loader/localized.svg)](https://crowdin.com/project/j2me-loader)
-[![GitHub release](https://img.shields.io/github/release/nikita36078/J2ME-Loader.svg)](https://github.com/nikita36078/J2ME-Loader/releases)
+**rBerry** (shown as *RetroBerry* on the loading screen) is an Android app by
+**Noven** that plays classic keypad-phone Java (J2ME) games inside a retro
+handheld-style interface.
 
-J2ME-Loader is a J2ME emulator for Android. It supports most 2D and 3D games (including Mascot Capsule 3D ones). Emulator has a virtual keyboard, individual settings for each application, scaling support.
-This project is a fork of [J2meLoader](https://github.com/NaikSoftware/J2meLoader).  
-Special thanks to [woesss](https://github.com/woesss), the author of [JL-Mod](https://github.com/woesss/JL-Mod), for creating open-source Mascot Capsule implementation, soundbank support and many other improvements.
+- Original games built into the app (starting with Snake)
+- A **+** card to import your own `.jar` / `.jad` games from your device
+- Powered by the open-source [J2ME Loader](https://github.com/nikita36078/J2ME-Loader) engine
 
-System requirements: Android 4.0+  
-[4PDA discussion](https://4pda.to/forum/index.php?showtopic=824201)  
-[XDA-Developers](https://forum.xda-developers.com/android/apps-games/app-j2me-loader-t3777889)  
-[EmuGen wiki](https://emulation.gametechwiki.com/index.php/J2ME_Loader)  
-[Discord](https://discord.gg/Ag4rcpz)  
-[Automated builds](https://github.com/nikita36078/J2ME-Loader/releases/tag/continuous)
+> rBerry does not include or distribute commercial games. Only import games you
+> own or have the right to use.
 
-<a href="https://play.google.com/store/apps/details?id=ru.playsoftware.j2meloader">
-<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" height="75"></a>
-<a href="https://f-droid.org/app/ru.playsoftware.j2meloader">
-<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="75"></a>
+## Status
 
-## Compatibility
-[List of the tested Java Games (Touchscreen)](https://github.com/nikita36078/J2ME-Loader/wiki/List-of-Tested-Java-Games-(Touchscreen))  
-[List of the tested Java Games (Non Touchscreen)](https://github.com/nikita36078/J2ME-Loader/wiki/List-of-Tested-Java-Games-(Non-Touchscreen))  
-[List of the Java Games with Bugs](https://github.com/nikita36078/J2ME-Loader/wiki/List-of-Java-Games-with-Bugs)
+Early development. See the latest debug build under
+[Releases](https://github.com/tontonvs/rBerry/releases).
 
-## Tips
- - Enabling filtering in some cases can greatly reduce performance. Disable this option if game is too slow.
- - Image flickering issues can be fixed by enabling the "Immediate processing mode" option.
+## Building
 
-## Screenshots
+Builds run in GitHub Actions (see `.github/workflows/build.yml`) and publish a
+debug APK to the `latest-build` pre-release on every push to `master`.
+Local builds need JDK 21, the Android SDK and NDK, and the submodules
+(`git submodule update --init`).
 
-<img src="/screenshots/screen.jpg" width="288" height="512"> <img src="/screenshots/screen2.jpg" width="288" height="512">
-<img src="/screenshots/screen3.jpg" width="288" height="512"> <img src="/screenshots/screen4.jpg" width="288" height="512">
-* For more screenshots check out the [wiki](https://emulation.gametechwiki.com/index.php/J2ME_Loader#Screenshots)
+## License and credits
 
-## License
-> Copyright 2017-2026 Nikita Shakarun.
-> Licensed under the [Apache License, Version 2.0.](http://www.apache.org/licenses/LICENSE-2.0)  
-> (See the [LICENSE](https://github.com/nikita36078/J2ME-Loader/blob/master/LICENSE) file for the whole license text.)
+Licensed under the Apache License, Version 2.0 (see `LICENSE`).
+Based on J2ME Loader, Copyright 2017-2026 Nikita Shakarun. See `NOTICE` and
+the in-app **About > Licenses** screen for all third-party credits.

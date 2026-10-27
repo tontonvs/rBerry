@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#F0307A"/>
+    <stop offset="0.55" stop-color="#C80A4E"/>
+    <stop offset="1" stop-color="#A80038"/>
+  </linearGradient>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
+    <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="dome" cx="511" cy="790" r="430" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#B0003C"/>
+    <stop offset="0.58" stop-color="#C20A4B"/>
+    <stop offset="0.86" stop-color="#E81E78"/>
+    <stop offset="1" stop-color="#FF7DB1"/>
+  </radialGradient>
+  <linearGradient id="eye" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFFFFF"/>
+    <stop offset="1" stop-color="#F6B7CF"/>
+  </linearGradient>
+</defs>
+<rect x="175" y="243" width="673" height="669" rx="165" fill="url(#back)"/><path d="M175 440 V408 A165 165 0 0 1 340 243 H683 A165 165 0 0 1 848 408 V440 Z" fill="url(#gloss)"/><path d="M160 433 Q248 420 290 490" fill="none" stroke="#141414" stroke-width="30" stroke-linecap="round"/><path d="M175 660 C175 520 330 408 511 408 C692 408 848 520 848 660 V747 A165 165 0 0 1 683 912 H340 A165 165 0 0 1 175 747 Z" fill="url(#dome)"/><ellipse cx="451" cy="651" rx="62" ry="78" fill="url(#eye)"/><ellipse cx="627" cy="614" rx="59" ry="76" fill="url(#eye)" transform="rotate(-8 627 614)"/></svg>

@@ -1,0 +1,24 @@
+rBerry
+Copyright 2026 Noven (tontonvs)
+
+rBerry is built on J2ME Loader, an open-source J2ME emulator for Android.
+
+J2ME Loader
+Copyright 2017-2026 Nikita Shakarun
+Licensed under the Apache License, Version 2.0
+https://github.com/nikita36078/J2ME-Loader
+
+J2ME Loader is itself a fork of J2meLoader by Nickolay Savchenko and includes
+work from JL-Mod by Yury Kharchenko (Mascot Capsule 3D implementation) and
+other third-party components. Their notices and licenses are listed in the
+app under About > Licenses (app/src/main/assets/licenses.html).
+
+Files in this repository that were changed from the upstream J2ME Loader
+sources carry the upstream license header and were modified by Noven. See the
+git history for the exact changes. The full Apache License 2.0 text is in the
+LICENSE file.
+
+"Java" and "J2ME" are used here only to describe the type of apps the emulator
+can run. rBerry is not affiliated with or endorsed by Oracle, Nintendo, or any
+game publisher. rBerry does not include or distribute any commercial games;
+users can only import files they already own.

@@ -12,11 +12,11 @@ android {
     namespace 'ru.playsoftware.j2meloader'
 
     defaultConfig {
-        applicationId "ru.playsoftware.j2meloader"
+        applicationId "com.noven.rberry"
         minSdk MIN_SDK
         targetSdk TARGET_SDK
-        versionCode 101
-        versionName "1.8.2"
+        versionCode 1
+        versionName "0.1.0"
         resValue 'string', 'app_name', rootProject.name
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -136,7 +136,7 @@ androidComponents {
         if (variant.buildType == 'debug' && variant.flavorName != 'midlet') {
             variant.resValues.put(
                     variant.makeResValueKey('string', 'app_name'),
-                    new ResValue('JL-Debug', null))
+                    new ResValue('rBerry Debug', null))
         }
         def baseName = variant.flavorName == 'midlet' ? "${midletArchivesBaseName}-" : "${rootProject.name}-"
         variant.outputs.each { output ->
