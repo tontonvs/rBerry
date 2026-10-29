@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pixel-art snake chasing a berry. One viewport unit is one pixel of the art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="9"
+    android:viewportHeight="9">
+    <path
+        android:fillColor="#2FD474"
+        android:pathData="M1,2h5v1h-5zM1,3h1v1h-1zM1,4h5v1h-5zM5,5h1v1h-1zM2,6h4v1h-4z" />
+    <path
+        android:fillColor="#7DFFB0"
+        android:pathData="M5,2h1v1h-1z" />
+    <path
+        android:fillColor="#1E0B22"
+        android:pathData="M5.25,2.25h0.5v0.5h-0.5z" />
+    <path
+        android:fillColor="#FF2E6E"
+        android:pathData="M7,2h1v1h-1z" />
+    <path
+        android:fillColor="#39E07A"
+        android:pathData="M7,1h1v1h-1z" />
+</vector>

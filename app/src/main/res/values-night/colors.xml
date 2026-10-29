@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--dark theme colors-->
-    <color name="primary">#262e37</color>
-    <color name="primary_dark">#20272f</color>
-    <color name="accent">#0099ff</color>
-    <color name="background">#20272f</color>
+    <color name="primary">#4A1230</color>
+    <color name="primary_dark">#35091F</color>
+    <color name="accent">#FF6FA5</color>
+    <color name="background">#1C0B15</color>
     <color name="text_primary">#ffffff</color>
-    <color name="text_secondary">#dedede</color>
-    <color name="btn_bg_normal">#0099ff</color>
-    <color name="btn_bg_pressed">#005D8C</color>
-    <color name="config_card">#262e37</color>
+    <color name="text_secondary">#E8CFDA</color>
+    <color name="btn_bg_normal">#D6105A</color>
+    <color name="btn_bg_pressed">#8F0A3A</color>
+    <color name="config_card">#2A1220</color>
+
+    <!--rBerry home cards-->
+    <color name="card_bg">#2A1220</color>
+    <color name="card_stroke">#4A2438</color>
+    <color name="card_add_bg">#241019</color>
+    <color name="card_add_stroke">#99FF6FA5</color>
+    <color name="card_icon_bg">#12061A</color>
+    <color name="card_title">#FFFFFF</color>
+    <color name="card_sub">#D0A9BB</color>
 
     <color name="nnf_separator_color">@color/nnf_dark_separator_color</color>
 </resources>

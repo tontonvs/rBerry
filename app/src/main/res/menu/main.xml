@@ -10,13 +10,6 @@
         app:showAsAction="always"
         tools:ignore="AlwaysShowAction" />
     <item
-        android:id="@+id/action_view"
-        android:title="@string/pref_apps_view"
-        android:icon="@drawable/ic_action_apps_view_list"
-        app:showAsAction="always"
-        android:orderInCategory="1">
-    </item>
-    <item
         android:id="@+id/action_sort"
         android:title="@string/pref_app_sort_title"
         android:icon="@drawable/ic_action_sort"

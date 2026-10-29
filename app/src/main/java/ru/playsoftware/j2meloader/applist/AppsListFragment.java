@@ -2,6 +2,7 @@
  * Copyright 2015-2016 Nickolay Savchenko
  * Copyright 2017-2020 Nikita Shakarun
  * Copyright 2018-2022 Yury Kharchenko
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,6 @@ package ru.playsoftware.j2meloader.applist;
 
 import static ru.playsoftware.j2meloader.util.Constants.KEY_APP_URI;
 import static ru.playsoftware.j2meloader.util.Constants.KEY_MIDLET_NAME;
-import static ru.playsoftware.j2meloader.util.Constants.PREF_APPS_VIEW;
 import static ru.playsoftware.j2meloader.util.Constants.PREF_APP_SORT;
 import static ru.playsoftware.j2meloader.util.Constants.PREF_LAST_PATH;
 
@@ -70,13 +70,16 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
-import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.noven.rberry.home.BuiltInGame;
+import com.noven.rberry.home.HomeCardsAdapter;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
@@ -99,6 +102,7 @@ import ru.woesss.j2me.installer.InstallerDialog;
 
 public class AppsListFragment extends Fragment implements MenuProvider {
 	private static final String TAG = AppsListFragment.class.getSimpleName();
+	private static final String PREF_IMPORT_NOTICE_ACK = "pref_import_notice_ack";
 
 	private final ActivityResultLauncher<String> openFileLauncher = registerForActivityResult(
 			FileUtils.getFilePicker(),
@@ -110,7 +114,18 @@ public class AppsListFragment extends Fragment implements MenuProvider {
 	private Disposable searchViewDisposable;
 	private GridLayoutManager layoutManager;
 	private FragmentAppsListBinding binding;
-	private DividerItemDecoration itemDecoration;
+	private HomeCardsAdapter cardsAdapter;
+	private final HomeCardsAdapter.Listener cardListener = new HomeCardsAdapter.Listener() {
+		@Override
+		public void onBuiltInGameClicked(@NonNull BuiltInGame game) {
+			startActivity(new Intent(requireContext(), game.activityClass));
+		}
+
+		@Override
+		public void onAddGameClicked() {
+			onAddClicked();
+		}
+	};
 
 	public static AppsListFragment newInstance(Uri data) {
 		AppsListFragment fragment = new AppsListFragment();
@@ -128,6 +143,7 @@ public class AppsListFragment extends Fragment implements MenuProvider {
 		args.remove(KEY_APP_URI);
 		FragmentActivity activity = requireActivity();
 		preferences = PreferenceManager.getDefaultSharedPreferences(activity);
+		cardsAdapter = new HomeCardsAdapter(activity, cardListener);
 		AppListModel appListModel = new ViewModelProvider(activity).get(AppListModel.class);
 		appRepository = appListModel.getAppRepository();
 		appRepository.observeErrors(this, this::alertDbError);
@@ -147,39 +163,58 @@ public class AppsListFragment extends Fragment implements MenuProvider {
 		menuHost.addMenuProvider(this, getViewLifecycleOwner());
 
 		adapter.setEmptyView(binding.empty);
-		int viewType = preferences.getInt(PREF_APPS_VIEW, AppsListAdapter.LAYOUT_TYPE_GRID);
-		int spanCount;
-		if (viewType == AppsListAdapter.LAYOUT_TYPE_GRID) {
-			spanCount = getResources().getConfiguration().screenWidthDp / 90;
-		} else {
-			spanCount = 1;
-			itemDecoration = new DividerItemDecoration(view.getContext(), DividerItemDecoration.VERTICAL);
-			binding.list.addItemDecoration(itemDecoration);
-		}
-		adapter.setLayout(viewType);
-		layoutManager = new GridLayoutManager(requireContext(), spanCount);
-		requireActivity().addOnConfigurationChangedListener(configuration -> {
-			if (adapter.getItemViewType(0) == AppsListAdapter.LAYOUT_TYPE_GRID) {
-				layoutManager.setSpanCount(configuration.screenWidthDp / 90);
-			}
-		});
+		// rBerry always shows games as cards in a grid.
+		adapter.setLayout(AppsListAdapter.LAYOUT_TYPE_GRID);
+		adapter.setOtherItemCount(cardsAdapter.getItemCount());
+		layoutManager = new GridLayoutManager(requireContext(),
+				spanCountFor(getResources().getConfiguration().screenWidthDp));
+		requireActivity().addOnConfigurationChangedListener(configuration ->
+				layoutManager.setSpanCount(spanCountFor(configuration.screenWidthDp)));
 		binding.list.setLayoutManager(layoutManager);
-		binding.list.setAdapter(adapter);
-		binding.floatingActionButton.setOnClickListener(v -> {
-			String path = preferences.getString(PREF_LAST_PATH, null);
-			if (path == null) {
-				File dir = Environment.getExternalStorageDirectory();
-				if (dir.canRead()) {
-					path = dir.getAbsolutePath();
-				}
+		// Built-in games and the "+" card first, then the imported games.
+		binding.list.setAdapter(new ConcatAdapter(cardsAdapter, adapter));
+	}
+
+	private static int spanCountFor(int widthDp) {
+		return Math.max(2, widthDp / 120);
+	}
+
+	private void applyQuery(CharSequence query) {
+		cardsAdapter.setQuery(query);
+		adapter.setOtherItemCount(cardsAdapter.getItemCount());
+		adapter.getFilter().filter(query);
+	}
+
+	private void onAddClicked() {
+		if (preferences.getBoolean(PREF_IMPORT_NOTICE_ACK, false)) {
+			launchImportPicker();
+			return;
+		}
+		new AlertDialog.Builder(requireActivity())
+				.setTitle(R.string.import_notice_title)
+				.setMessage(R.string.import_notice_message)
+				.setPositiveButton(R.string.import_notice_accept, (d, w) -> {
+					preferences.edit().putBoolean(PREF_IMPORT_NOTICE_ACK, true).apply();
+					launchImportPicker();
+				})
+				.setNegativeButton(android.R.string.cancel, null)
+				.show();
+	}
+
+	private void launchImportPicker() {
+		String path = preferences.getString(PREF_LAST_PATH, null);
+		if (path == null) {
+			File dir = Environment.getExternalStorageDirectory();
+			if (dir.canRead()) {
+				path = dir.getAbsolutePath();
 			}
-			try {
-				openFileLauncher.launch(path);
-			} catch (ActivityNotFoundException e) {
-				Toast.makeText(getContext(), R.string.error_no_picker, Toast.LENGTH_SHORT).show();
-				e.printStackTrace();
-			}
-		});
+		}
+		try {
+			openFileLauncher.launch(path);
+		} catch (ActivityNotFoundException e) {
+			Toast.makeText(getContext(), R.string.error_no_picker, Toast.LENGTH_SHORT).show();
+			e.printStackTrace();
+		}
 	}
 
 	private void alertDbError(Throwable throwable) {
@@ -347,11 +382,7 @@ public class AppsListFragment extends Fragment implements MenuProvider {
 				.map(String::toLowerCase)
 				.distinctUntilChanged()
 				.observeOn(AndroidSchedulers.mainThread())
-				.subscribe(charSequence -> adapter.getFilter().filter(charSequence));
-		int type = preferences.getInt(PREF_APPS_VIEW, AppsListAdapter.LAYOUT_TYPE_GRID);
-		if (type == AppsListAdapter.LAYOUT_TYPE_LIST) {
-			menu.findItem(R.id.action_view).setIcon(R.drawable.ic_action_apps_view_grid);
-		}
+				.subscribe(this::applyQuery);
 	}
 
 	@SuppressLint("NotifyDataSetChanged")
@@ -382,31 +413,6 @@ public class AppsListFragment extends Fragment implements MenuProvider {
 			activity.finish();
 		} else if (itemId == R.id.action_sort) {
 			showSortDialog();
-		} else if (itemId == R.id.action_view) {
-			int viewType = adapter.getItemViewType(0);
-			viewType = (viewType + 1) % 2;
-			if (viewType == AppsListAdapter.LAYOUT_TYPE_LIST) {
-				item.setIcon(R.drawable.ic_action_apps_view_grid);
-			} else {
-				item.setIcon(R.drawable.ic_action_apps_view_list);
-			}
-			int spanCount;
-			if (viewType == AppsListAdapter.LAYOUT_TYPE_GRID) {
-				spanCount = getResources().getConfiguration().screenWidthDp / 90;
-				if (itemDecoration != null) {
-					binding.list.removeItemDecoration(itemDecoration);
-				}
-			} else {
-				spanCount = 1;
-				if (itemDecoration == null) {
-					itemDecoration = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
-				}
-				binding.list.addItemDecoration(itemDecoration);
-			}
-			layoutManager.setSpanCount(spanCount);
-			adapter.setLayout(viewType);
-			adapter.notifyDataSetChanged();
-			preferences.edit().putInt(PREF_APPS_VIEW, viewType).apply();
 		} else {
 			return false;
 		}

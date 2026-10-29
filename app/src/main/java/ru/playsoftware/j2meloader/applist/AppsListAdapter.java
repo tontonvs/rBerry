@@ -2,6 +2,7 @@
  * Copyright 2015-2016 Nickolay Savchenko
  * Copyright 2017-2019 Nikita Shakarun
  * Copyright 2019-2023 Yury Kharchenko
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +51,7 @@ class AppsListAdapter extends ListAdapter<AppItem, AppsListAdapter.AppViewHolder
 	private CharSequence filterConstraint;
 	private View emptyView;
 	private int layout = LAYOUT_TYPE_LIST;
+	private int otherItemCount;
 
 	AppsListAdapter(View.OnCreateContextMenuListener contextMenuListener) {
 		super(new DiffUtil.ItemCallback<AppItem>() {
@@ -108,6 +110,14 @@ class AppsListAdapter extends ListAdapter<AppItem, AppsListAdapter.AppViewHolder
 		this.layout = layout;
 	}
 
+	/**
+	 * Number of cards shown by other adapters in the same grid (rBerry built-in games and the
+	 * "+" card). While it is above zero the "no data" text must stay hidden.
+	 */
+	void setOtherItemCount(int count) {
+		otherItemCount = count;
+	}
+
 	static class AppViewHolder extends RecyclerView.ViewHolder {
 		private final ImageView icon;
 		private final TextView name;
@@ -126,8 +136,10 @@ class AppsListAdapter extends ListAdapter<AppItem, AppsListAdapter.AppViewHolder
 
 			itemView.setOnClickListener(v -> {
 				AppsListAdapter adapter = (AppsListAdapter) getBindingAdapter();
-				if (adapter != null) {
-					AppItem item = adapter.getItem(getLayoutPosition());
+				// The position inside this adapter, not in the whole grid (it sits behind other cards).
+				int position = getBindingAdapterPosition();
+				if (adapter != null && position != RecyclerView.NO_POSITION) {
+					AppItem item = adapter.getItem(position);
 					Config.startApp(v.getContext(), item.getTitle(), item.getPathExt(), false);
 				}
 			});
@@ -196,10 +208,10 @@ class AppsListAdapter extends ListAdapter<AppItem, AppsListAdapter.AppViewHolder
 			filterConstraint = constraint;
 			//noinspection unchecked
 			submitList((List<AppItem>) results.values);
-			if (results.count > 0) {
+			if (results.count > 0 || otherItemCount > 0) {
 				emptyView.setVisibility(View.GONE);
 			} else {
-				if (list.isEmpty()) {
+				if (isEmpty(constraint)) {
 					((TextView) emptyView).setText(R.string.no_data_for_display);
 				} else {
 					String msg = emptyView.getResources().getString(R.string.msg_no_matches, constraint);

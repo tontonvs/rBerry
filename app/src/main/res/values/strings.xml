@@ -292,4 +292,26 @@
     <string name="alert_rewrite_profile">A profile named \"%1$s\" already exists.\nDo you want to overwrite it?</string>
     <string name="msg_no_matches">No matches for \"%1$s\"</string>
     <string name="msg_unsupported_soundbank">Unsupported soundbank, default bank is used!</string>
+
+    <!-- rBerry: home screen -->
+    <string name="home_add_title">Add game</string>
+    <string name="home_add_sub">Import .jar</string>
+    <string name="home_builtin_tag">Built-in</string>
+    <string name="import_notice_title">Import your own games</string>
+    <string name="import_notice_message">Only import game files that you own or have the right to use. rBerry does not include or provide any commercial games.</string>
+    <string name="import_notice_accept">I understand</string>
+
+    <!-- rBerry: Snake -->
+    <string name="snake_title">Snake</string>
+    <string name="snake_hud_score">SCORE</string>
+    <string name="snake_hud_best">BEST</string>
+    <string name="snake_hint_swipe">Swipe to steer</string>
+    <string name="snake_tap_start">Swipe or tap to start</string>
+    <string name="snake_paused">PAUSED</string>
+    <string name="snake_tap_resume">Tap to resume</string>
+    <string name="snake_game_over">GAME OVER</string>
+    <string name="snake_win">YOU WIN!</string>
+    <string name="snake_new_best">New best!</string>
+    <string name="snake_tap_retry">Tap to play again</string>
+
 </resources>

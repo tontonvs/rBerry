@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The "+" card: same shape as a game card, but with a dashed border. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?android:attr/colorControlHighlight">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/card_add_bg" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/card_add_stroke"
+                android:dashGap="6dp"
+                android:dashWidth="8dp" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+</ripple>

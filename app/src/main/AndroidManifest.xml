@@ -145,6 +145,12 @@
             android:exported="false"
             android:theme="@style/FilePickerTheme" />
         <activity android:name=".config.ProfilesActivity" android:exported="false" />
+        <activity
+            android:name="com.noven.rberry.games.snake.SnakeActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
+            android:exported="false"
+            android:label="@string/snake_title"
+            android:theme="@style/AppTheme.NoActionBar" />
         <provider
             android:name=".storage.DocumentProvider"
             android:authorities="${applicationId}.documentProvider"
