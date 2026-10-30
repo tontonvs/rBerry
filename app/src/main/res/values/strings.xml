@@ -305,13 +305,16 @@
     <string name="snake_title">Snake</string>
     <string name="snake_hud_score">SCORE</string>
     <string name="snake_hud_best">BEST</string>
-    <string name="snake_hint_swipe">Swipe to steer</string>
-    <string name="snake_tap_start">Swipe or tap to start</string>
+    <string name="snake_hint_swipe">D-pad or swipe</string>
+    <string name="snake_tap_start">Press PLAY</string>
     <string name="snake_paused">PAUSED</string>
-    <string name="snake_tap_resume">Tap to resume</string>
+    <string name="snake_tap_resume">Press PLAY</string>
     <string name="snake_game_over">GAME OVER</string>
     <string name="snake_win">YOU WIN!</string>
     <string name="snake_new_best">New best!</string>
-    <string name="snake_tap_retry">Tap to play again</string>
+    <string name="snake_tap_retry">Press PLAY</string>
+    <string name="handheld_pick">PICK</string>
+    <string name="handheld_play">PLAY</string>
+    <string name="handheld_boot_tagline">by Noven</string>
 
 </resources>

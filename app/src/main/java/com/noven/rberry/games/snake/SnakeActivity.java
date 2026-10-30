@@ -16,26 +16,38 @@
 
 package com.noven.rberry.games.snake;
 
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.noven.rberry.handheld.GameKey;
+import com.noven.rberry.handheld.HandheldView;
 
 import ru.playsoftware.j2meloader.base.BaseActivity;
 
-/** Hosts the built-in Snake game. Phase 3 will move it inside the handheld body. */
-public class SnakeActivity extends BaseActivity {
+/**
+ * Hosts the built-in Snake game inside the rBerry handheld body. The D-pad steers, PLAY (or A)
+ * starts, pauses and resumes. Swiping on the display and a hardware keyboard or gamepad still work.
+ */
+public class SnakeActivity extends BaseActivity implements HandheldView.KeyListener {
 
+    private HandheldView handheld;
     private SnakeView snakeView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Same plum as the game screen, so the system bar areas do not show a light strip.
-        getWindow().setBackgroundDrawable(new ColorDrawable(0xFF1E0B22));
+        HandheldView.applyWindowChrome(this);
+        handheld = new HandheldView(this);
         snakeView = new SnakeView(this);
-        setContentView(snakeView);
+        handheld.setScreen(snakeView);
+        handheld.setKeyListener(this);
+        setContentView(handheld);
+        if (savedInstanceState == null) {
+            handheld.showBoot(null);
+        }
     }
 
     @Override
@@ -44,37 +56,86 @@ public class SnakeActivity extends BaseActivity {
         super.onPause();
     }
 
-    /** Keyboard, D-pad and gamepad support for people who play with a controller. */
+    @Override
+    public void onKey(@NonNull GameKey key, boolean down) {
+        if (!down) {
+            return;
+        }
+        switch (key) {
+            case UP:
+                snakeView.turn(SnakeEngine.Dir.UP);
+                break;
+            case DOWN:
+                snakeView.turn(SnakeEngine.Dir.DOWN);
+                break;
+            case LEFT:
+                snakeView.turn(SnakeEngine.Dir.LEFT);
+                break;
+            case RIGHT:
+                snakeView.turn(SnakeEngine.Dir.RIGHT);
+                break;
+            case A:
+            case PLAY:
+                snakeView.togglePause();
+                break;
+            case B:
+            case PICK:
+                snakeView.pause();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /** Keyboard, D-pad and gamepad support. The console buttons light up to match. */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        SnakeEngine.Dir dir;
+        GameKey key = keyFor(keyCode);
+        if (key == null) {
+            return super.onKeyDown(keyCode, event);
+        }
+        if (event.getRepeatCount() == 0) {
+            handheld.showPressed(key, true);
+            if (!handheld.isBooting()) {
+                onKey(key, true);
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        GameKey key = keyFor(keyCode);
+        if (key == null) {
+            return super.onKeyUp(keyCode, event);
+        }
+        handheld.showPressed(key, false);
+        return true;
+    }
+
+    @Nullable
+    private static GameKey keyFor(int keyCode) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_W:
-                dir = SnakeEngine.Dir.UP;
-                break;
+                return GameKey.UP;
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_S:
-                dir = SnakeEngine.Dir.DOWN;
-                break;
+                return GameKey.DOWN;
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_A:
-                dir = SnakeEngine.Dir.LEFT;
-                break;
+                return GameKey.LEFT;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_D:
-                dir = SnakeEngine.Dir.RIGHT;
-                break;
+                return GameKey.RIGHT;
             case KeyEvent.KEYCODE_SPACE:
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_BUTTON_START:
-                snakeView.togglePause();
-                return true;
+            case KeyEvent.KEYCODE_BUTTON_A:
+                return GameKey.PLAY;
             default:
-                return super.onKeyDown(keyCode, event);
+                return null;
         }
-        snakeView.turn(dir);
-        return true;
     }
 }
