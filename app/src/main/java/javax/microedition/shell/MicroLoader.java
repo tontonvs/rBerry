@@ -68,6 +68,7 @@ import io.reactivex.schedulers.Schedulers;
 import kotlin.io.ConstantsKt;
 import kotlin.io.FilesKt;
 import com.noven.rberry.handheld.DisplayMode;
+import com.noven.rberry.handheld.DisplayPrefs;
 
 import ru.playsoftware.j2meloader.BuildConfig;
 import ru.playsoftware.j2meloader.config.Config;
@@ -290,7 +291,12 @@ public class MicroLoader {
 		try {
 			// rBerry: only two display modes exist. Whatever an old profile says, the display
 			// settings are set from the game's mode every time it starts.
-			DisplayMode.of(params).apply(params);
+			DisplayMode mode = DisplayMode.of(params);
+			mode.apply(params);
+			// rBerry: the player may have chosen to stretch the picture to fill its frame.
+			if (DisplayPrefs.load(context, mode).stretch) {
+				params.screenScaleType = 2;
+			}
 			// Apply configuration to the launching MIDlet
 			if (params.showKeyboard) {
 				ContextHolder.setVk(new VirtualKeyboard(params));

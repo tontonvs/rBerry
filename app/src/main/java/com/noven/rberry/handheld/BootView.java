@@ -24,7 +24,6 @@ import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
-import android.graphics.Typeface;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
@@ -108,7 +107,7 @@ final class BootView extends View {
         stalk.moveTo(160f, 433f);
         stalk.quadTo(248f, 420f, 290f, 490f);
 
-        textPaint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        textPaint.setTypeface(PixelFont.get(context));
         textPaint.setTextAlign(Paint.Align.LEFT);
     }
 
@@ -171,11 +170,17 @@ final class BootView extends View {
         float drop = (1f - p) * -h * 0.12f;
         drawLogo(canvas, cx, cy + drop, logoSize / LOGO_SPAN * scale);
 
-        float size = Math.min(w * 0.11f, h * 0.09f);
+        float size = Math.min(w * 0.14f, h * 0.09f);
         textPaint.setTextSize(size);
-        float charW = textPaint.measureText("W");
-        float total = charW * (WORD_A.length() + WORD_B.length());
+        float total = textPaint.measureText(WORD_A + WORD_B);
+        if (total > w * 0.84f) {
+            // The pixel font is not monospaced: shrink until the whole word fits.
+            size *= w * 0.84f / total;
+            textPaint.setTextSize(size);
+            total = textPaint.measureText(WORD_A + WORD_B);
+        }
         float x = cx - total / 2f;
+        float widthA = textPaint.measureText(WORD_A);
         float baseline = cy + logoSize / 2f + size * 1.5f;
         int shown = (int) (clamp((ms - 700) / 700f) * (WORD_A.length() + WORD_B.length()));
         int shownA = Math.min(shown, WORD_A.length());
@@ -183,13 +188,14 @@ final class BootView extends View {
         canvas.drawText(WORD_A, 0, shownA, x, baseline, textPaint);
         if (shown > WORD_A.length()) {
             textPaint.setColor(0xFFFF6FA5);
-            canvas.drawText(WORD_B, 0, shown - WORD_A.length(), x + charW * WORD_A.length(), baseline, textPaint);
+            canvas.drawText(WORD_B, 0, shown - WORD_A.length(), x + widthA, baseline, textPaint);
         }
         if (ms < 1500 && ((ms / 220) & 1) == 0) {
             // Blinking block cursor while typing.
             paint.setColor(0xFFFF6FA5);
-            float cursorX = x + charW * shown;
-            canvas.drawRect(cursorX + charW * 0.1f, baseline - size * 0.8f, cursorX + charW * 0.7f, baseline, paint);
+            float cursorX = x + textPaint.measureText((WORD_A + WORD_B).substring(0, shown));
+            float cursorW = size * 0.55f;
+            canvas.drawRect(cursorX + cursorW * 0.15f, baseline - size * 0.8f, cursorX + cursorW, baseline, paint);
         }
 
         float tagAlpha = clamp((ms - 1300) / 300f);

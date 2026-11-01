@@ -21,7 +21,6 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -30,6 +29,8 @@ import android.view.View;
 import java.util.Random;
 
 import ru.playsoftware.j2meloader.R;
+
+import com.noven.rberry.handheld.PixelFont;
 
 /**
  * The Snake screen: draws the board with the coloured rBerry display style and handles swipes.
@@ -123,7 +124,7 @@ public class SnakeView extends View {
         swipeThreshold = 24 * density;
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         best = prefs.getInt(KEY_BEST, 0);
-        textPaint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        textPaint.setTypeface(PixelFont.get(context));
         setFocusable(true);
         refreshHud();
     }

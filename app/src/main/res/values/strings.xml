@@ -320,4 +320,17 @@
     <string name="handheld_menu_portrait">Play upright (portrait)</string>
     <string name="handheld_menu_more">More options</string>
 
+
+    <!-- rBerry: resize the game picture, key feedback -->
+    <string name="resize_stretch_on">STRETCH: ON</string>
+    <string name="resize_stretch_off">STRETCH: OFF</string>
+    <string name="resize_reset">RESET</string>
+    <string name="resize_done">DONE</string>
+    <string name="resize_hint_edges">DRAG EDGES TO RESIZE</string>
+    <string name="resize_hint_move">DRAG INSIDE TO MOVE</string>
+    <string name="handheld_menu_resize">Resize screen</string>
+    <string name="handheld_menu_sound_on">Sound: ON</string>
+    <string name="handheld_menu_sound_off">Sound: OFF</string>
+    <string name="handheld_menu_vibration_on">Vibration: ON</string>
+    <string name="handheld_menu_vibration_off">Vibration: OFF</string>
 </resources>

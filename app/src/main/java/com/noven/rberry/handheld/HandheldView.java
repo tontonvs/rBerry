@@ -25,7 +25,6 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.util.AttributeSet;
-import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -54,6 +53,11 @@ public class HandheldView extends ViewGroup {
     /** Receives every button press and release. Called on the UI thread. */
     public interface KeyListener {
         void onKey(@NonNull GameKey key, boolean down);
+    }
+
+    /** Receives a frame from the resize overlay. */
+    public interface FrameListener {
+        void accept(@NonNull DisplayFrame frame);
     }
 
     // ---- palette (console body is light; the buttons use the rBerry accents) -------------------
@@ -123,6 +127,15 @@ public class HandheldView extends ViewGroup {
     private final Path patchPath = new Path();
     private final HandheldGeometry.Box cell = new HandheldGeometry.Box();
 
+    private final Typeface pixel;
+    private final KeyFeedback feedback;
+    private final DisplayFrame frame = new DisplayFrame();
+    private ResizeOverlay resizeOverlay;
+    private int hostLeft;
+    private int hostTop;
+    private int hostRight;
+    private int hostBottom;
+
     private final String pickLabel;
     private final String playLabel;
 
@@ -133,6 +146,8 @@ public class HandheldView extends ViewGroup {
     public HandheldView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         setWillNotDraw(false);
+        pixel = PixelFont.get(context);
+        feedback = new KeyFeedback(context);
         pickLabel = context.getString(R.string.handheld_pick);
         playLabel = context.getString(R.string.handheld_play);
         screenHost = new FrameLayout(context);
@@ -205,12 +220,74 @@ public class HandheldView extends ViewGroup {
 
     /** Left edge of the display inside this view, in pixels. */
     public int getScreenLeft() {
-        return Math.round(geo.screen.left);
+        return hostLeft;
     }
 
     /** Top edge of the display inside this view, in pixels. */
     public int getScreenTop() {
-        return Math.round(geo.screen.top);
+        return hostTop;
+    }
+
+    /** The click and buzz on button presses; the game menu switches them on and off. */
+    @NonNull
+    public KeyFeedback getFeedback() {
+        return feedback;
+    }
+
+    /** Where the game picture sits inside the display window. The default is the whole window. */
+    public void setDisplayFrame(@NonNull DisplayFrame newFrame) {
+        frame.set(newFrame);
+        requestLayout();
+    }
+
+    @NonNull
+    public DisplayFrame getDisplayFrame() {
+        return new DisplayFrame(frame);
+    }
+
+    /** True while the resize frame is showing over the display. */
+    public boolean isResizing() {
+        return resizeOverlay != null;
+    }
+
+    /**
+     * Shows the resize frame over the display. {@code onChanged} gets every new frame as soon as a
+     * drag ends; {@code onDone} gets the final one when the player presses DONE or
+     * {@link #finishResize()} is called.
+     */
+    public void startResize(@NonNull FrameListener onChanged, @NonNull FrameListener onDone) {
+        if (resizeOverlay != null || bootView != null) {
+            return;
+        }
+        releaseAll();
+        ResizeOverlay overlay = new ResizeOverlay(getContext(), frame, new ResizeOverlay.Listener() {
+            @Override
+            public void onFrameChanged(@NonNull DisplayFrame f) {
+                frame.set(f);
+                requestLayout();
+                onChanged.accept(new DisplayFrame(f));
+            }
+
+            @Override
+            public void onFinished(@NonNull DisplayFrame f) {
+                if (resizeOverlay != null) {
+                    removeView(resizeOverlay);
+                    resizeOverlay = null;
+                }
+                frame.set(f);
+                requestLayout();
+                onDone.accept(new DisplayFrame(f));
+            }
+        });
+        resizeOverlay = overlay;
+        super.addView(overlay, -1, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+    }
+
+    /** Closes the resize frame, keeping what the player set. */
+    public void finishResize() {
+        if (resizeOverlay != null) {
+            resizeOverlay.finish();
+        }
     }
 
     /** Called after every layout, so things drawn over the display can follow it. */
@@ -286,15 +363,27 @@ public class HandheldView extends ViewGroup {
         geo.layout(w, h, getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom());
         int sw = Math.max(1, Math.round(geo.screen.width()));
         int sh = Math.max(1, Math.round(geo.screen.height()));
-        screenHost.measure(MeasureSpec.makeMeasureSpec(sw, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(sh, MeasureSpec.EXACTLY));
+        // The picture sits in the player's frame inside the display window.
+        hostLeft = Math.round(geo.screen.left + frame.left * sw);
+        hostTop = Math.round(geo.screen.top + frame.top * sh);
+        hostRight = Math.max(hostLeft + 1, Math.round(geo.screen.left + frame.right * sw));
+        hostBottom = Math.max(hostTop + 1, Math.round(geo.screen.top + frame.bottom * sh));
+        screenHost.measure(MeasureSpec.makeMeasureSpec(hostRight - hostLeft, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(hostBottom - hostTop, MeasureSpec.EXACTLY));
+        if (resizeOverlay != null) {
+            resizeOverlay.measure(MeasureSpec.makeMeasureSpec(sw, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(sh, MeasureSpec.EXACTLY));
+        }
         rebuildPaths();
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int right, int b) {
-        screenHost.layout(Math.round(geo.screen.left), Math.round(geo.screen.top),
-                Math.round(geo.screen.right), Math.round(geo.screen.bottom));
+        screenHost.layout(hostLeft, hostTop, hostRight, hostBottom);
+        if (resizeOverlay != null) {
+            resizeOverlay.layout(Math.round(geo.screen.left), Math.round(geo.screen.top),
+                    Math.round(geo.screen.right), Math.round(geo.screen.bottom));
+        }
         if (onScreenChanged != null) {
             onScreenChanged.run();
         }
@@ -392,7 +481,7 @@ public class HandheldView extends ViewGroup {
         if (Float.isNaN(geo.brandX)) {
             return;
         }
-        text.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC));
+        text.setTypeface(pixel);
         text.setTextSize(geo.brandSize);
         text.setColor(BRAND);
         canvas.drawText("rBerry", geo.brandX, geo.brandY, text);
@@ -424,7 +513,7 @@ public class HandheldView extends ViewGroup {
         fill.setColor(latched ? PAD_ON : (pressed ? SHOULDER_ON : SHOULDER));
         r.set(box.left, box.top + dy, box.right, box.bottom + dy);
         canvas.drawRoundRect(r, radius, radius, fill);
-        text.setTypeface(Typeface.DEFAULT_BOLD);
+        text.setTypeface(pixel);
         text.setTextSize(box.height() * 0.62f);
         text.setColor(latched ? BRAND : SHOULDER_TEXT);
         canvas.drawText(label, box.centerX(), box.centerY() + dy + box.height() * 0.22f, text);
@@ -505,7 +594,7 @@ public class HandheldView extends ViewGroup {
         float half = geo.faceHalf;
         float lip = half * 0.22f;
         float radius = half * 0.38f;
-        text.setTypeface(Typeface.DEFAULT_BOLD);
+        text.setTypeface(pixel);
         text.setTextSize(half * 1.0f);
         for (int i = 0; i < 4; i++) {
             boolean on = (pressed & HandheldGeometry.FACE_KEYS[i].mask()) != 0;
@@ -535,7 +624,7 @@ public class HandheldView extends ViewGroup {
         fill.setColor(PLATE);
         r.set(k.left - pad, k.top - pad, k.right + pad, k.bottom + pad);
         canvas.drawRoundRect(r, pad * 3f, pad * 3f, fill);
-        text.setTypeface(Typeface.DEFAULT_BOLD);
+        text.setTypeface(pixel);
         for (int i = 0; i < 12; i++) {
             geo.keypadCell(i, cell);
             GameKey key = HandheldGeometry.keypadKey(i);
@@ -575,7 +664,7 @@ public class HandheldView extends ViewGroup {
         r.set(box.left + radius * 0.6f, box.top + box.height() * 0.14f + dy,
                 box.right - radius * 0.6f, box.top + box.height() * 0.40f + dy);
         canvas.drawRoundRect(r, radius * 0.3f, radius * 0.3f, fill);
-        text.setTypeface(Typeface.DEFAULT_BOLD);
+        text.setTypeface(pixel);
         text.setTextSize(geo.pillLabelSize);
         text.setColor(CAPTION);
         text.setLetterSpacing(0.08f);
@@ -617,6 +706,9 @@ public class HandheldView extends ViewGroup {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
+        if (resizeOverlay != null) {
+            return true;
+        }
         if (bootView != null) {
             // Any touch on the body skips the start-up animation.
             if (action == MotionEvent.ACTION_DOWN) {
@@ -681,7 +773,7 @@ public class HandheldView extends ViewGroup {
             }
         }
         if (newPress) {
-            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            feedback.onPress();
         }
         invalidate();
     }
@@ -710,6 +802,7 @@ public class HandheldView extends ViewGroup {
     @Override
     protected void onDetachedFromWindow() {
         releaseAll();
+        feedback.release();
         super.onDetachedFromWindow();
     }
 

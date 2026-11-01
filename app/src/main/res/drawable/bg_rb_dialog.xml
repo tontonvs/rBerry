@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- rBerry: dialog window, same plum panel; inset keeps the pink edge off the screen edge -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="12dp"
+    android:insetRight="12dp"
+    android:insetTop="4dp"
+    android:insetBottom="4dp">
+    <shape android:shape="rectangle">
+        <solid android:color="@color/rb_panel" />
+        <stroke android:width="2dp" android:color="@color/rb_pink" />
+        <corners android:radius="12dp" />
+    </shape>
+</inset>

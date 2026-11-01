@@ -25,16 +25,17 @@
                 android:id="@+id/statusbar_view"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:background="@color/primary" />
+                android:background="@color/rb_panel" />
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/colorPrimary"
+                android:background="@color/rb_panel"
                 android:descendantFocusability="blocksDescendants"
-                android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-                app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+                android:theme="@style/ThemeOverlay.RBerry.Toolbar"
+                app:popupTheme="@style/ThemeOverlay.RBerry.Popup"
+                app:titleTextAppearance="@style/TextAppearance.RBerry.ToolbarTitle"
                 tools:title="MIDlet Title" />
 
             <FrameLayout

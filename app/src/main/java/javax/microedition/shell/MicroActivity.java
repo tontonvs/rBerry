@@ -70,10 +70,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.preference.PreferenceManager;
 
+import com.noven.rberry.handheld.DisplayFrame;
 import com.noven.rberry.handheld.DisplayMode;
+import com.noven.rberry.handheld.DisplayPrefs;
 import com.noven.rberry.handheld.GameKey;
 import com.noven.rberry.handheld.HandheldKeys;
 import com.noven.rberry.handheld.HandheldView;
+import com.noven.rberry.handheld.KeyFeedback;
 
 import org.acra.ACRA;
 import org.acra.ErrorReporter;
@@ -123,6 +126,7 @@ public class MicroActivity extends AppCompatActivity {
 	private int menuKey;
 	private String appPath;
 	private HandheldKeys handheldKeys;
+	private DisplayMode displayMode = DisplayMode.PORTRAIT;
 
 	public ActivityMicroBinding binding;
 
@@ -196,6 +200,9 @@ public class MicroActivity extends AppCompatActivity {
 			return;
 		}
 		microLoader.applyConfiguration();
+		// rBerry: put the game picture where the player left it for this display mode.
+		displayMode = microLoader.getDisplayMode();
+		binding.handheld.setDisplayFrame(DisplayPrefs.load(this, displayMode));
 		VirtualKeyboard vk = ContextHolder.getVk();
 		int orientation = microLoader.getOrientation();
 		if (vk != null) {
@@ -252,6 +259,17 @@ public class MicroActivity extends AppCompatActivity {
 			actions.add(this::takeScreenshot);
 		}
 		if (microLoader != null) {
+			labels.add(getString(R.string.handheld_menu_resize));
+			actions.add(this::startResize);
+		}
+		KeyFeedback feedback = binding.handheld.getFeedback();
+		labels.add(getString(feedback.isSoundOn()
+				? R.string.handheld_menu_sound_on : R.string.handheld_menu_sound_off));
+		actions.add(() -> feedback.setSoundOn(!feedback.isSoundOn()));
+		labels.add(getString(feedback.isVibrationOn()
+				? R.string.handheld_menu_vibration_on : R.string.handheld_menu_vibration_off));
+		actions.add(() -> feedback.setVibrationOn(!feedback.isVibrationOn()));
+		if (microLoader != null) {
 			labels.add(getString(mode == DisplayMode.PORTRAIT
 					? R.string.handheld_menu_landscape : R.string.handheld_menu_portrait));
 			actions.add(() -> switchDisplayMode(mode.other()));
@@ -264,6 +282,23 @@ public class MicroActivity extends AppCompatActivity {
 				.setTitle(appName)
 				.setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
 				.show();
+	}
+
+	/** rBerry: shows the resize frame over the display. The result is remembered per display mode. */
+	private void startResize() {
+		if (binding.handheld.isResizing()) {
+			return;
+		}
+		binding.handheld.startResize(this::applyDisplayFrame, this::applyDisplayFrame);
+	}
+
+	/** rBerry: remembers the frame and switches between fit and stretch to match it. */
+	private void applyDisplayFrame(DisplayFrame frame) {
+		DisplayPrefs.save(this, displayMode, frame);
+		Canvas.setScale(2, frame.stretch ? 2 : 1, 100);
+		if (current instanceof Canvas) {
+			((Canvas) current).updateSize();
+		}
 	}
 
 	/** rBerry: restarts the game in the other display mode and remembers the choice for it. */
@@ -544,6 +579,10 @@ public class MicroActivity extends AppCompatActivity {
 
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK && binding.handheld.isResizing()) {
+			binding.handheld.finishResize();
+			return true;
+		}
 		if ((keyCode == menuKey || keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 				&& (event.getFlags() & (KeyEvent.FLAG_LONG_PRESS | KeyEvent.FLAG_CANCELED)) == 0) {
 			openOptionsMenu();

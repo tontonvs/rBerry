@@ -25,4 +25,10 @@
     <color name="card_sub">#8A5A6E</color>
 
     <color name="nnf_separator_color">@color/nnf_light_separator_color</color>
+
+    <!--rBerry game screen: toolbar, menus and dialogs match the console-->
+    <color name="rb_panel">#2A1030</color>
+    <color name="rb_panel_raised">#3A1B42</color>
+    <color name="rb_pink">#FF6FA5</color>
+    <color name="rb_text">#FFFFFF</color>
 </resources>
