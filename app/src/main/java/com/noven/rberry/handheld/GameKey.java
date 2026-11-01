@@ -27,7 +27,11 @@ public enum GameKey {
     /** The two small centre pills (the old SELECT and START). */
     PICK, PLAY,
     /** The two shoulder buttons, used as soft keys by J2ME games. */
-    L, R;
+    L, R,
+    /** The small "123" button that opens and closes the number pad. Handled by the body itself. */
+    PAD,
+    /** The number pad, which replaces the face buttons while it is open. */
+    NUM1, NUM2, NUM3, NUM4, NUM5, NUM6, NUM7, NUM8, NUM9, STAR, NUM0, POUND;
 
     /** One bit per key, so a set of pressed keys fits in an int. */
     public int mask() {

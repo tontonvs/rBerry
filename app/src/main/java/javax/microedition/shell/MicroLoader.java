@@ -1,6 +1,7 @@
 /*
  * Copyright 2018-2021 Nikita Shakarun
  * Copyright 2019-2023 Yury Kharchenko
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,6 +67,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import kotlin.io.ConstantsKt;
 import kotlin.io.FilesKt;
+import com.noven.rberry.handheld.DisplayMode;
+
 import ru.playsoftware.j2meloader.BuildConfig;
 import ru.playsoftware.j2meloader.config.Config;
 import ru.playsoftware.j2meloader.config.ProfileModel;
@@ -100,7 +103,14 @@ public class MicroLoader {
 		File config = new File(workDir + Config.MIDLET_CONFIGS_DIR + appDirName);
 		this.params = ProfilesManager.loadConfig(config);
 		if (params == null) {
-			return false;
+			// rBerry: no settings screen on the first start. The game gets a ready-made profile
+			// with the right display mode and starts straight away.
+			if (!config.exists() && !config.mkdirs()) {
+				return false;
+			}
+			params = new ProfileModel(config);
+			detectDisplayMode().apply(params);
+			ProfilesManager.saveConfig(params);
 		}
 		Display.initDisplay();
 		Graphics3D.initGraphics3D();
@@ -231,6 +241,46 @@ public class MicroLoader {
 		return params.orientation;
 	}
 
+	/** rBerry: the display mode this game runs in (portrait or landscape). */
+	DisplayMode getDisplayMode() {
+		return DisplayMode.of(params);
+	}
+
+	/** rBerry: remembers a new display mode for this game. It takes effect the next time it starts. */
+	void saveDisplayMode(DisplayMode mode) {
+		mode.apply(params);
+		ProfilesManager.saveConfig(params);
+	}
+
+	/**
+	 * rBerry: the starting display mode for a game that has no profile yet. Games that say in
+	 * their descriptor that they were made for a wide screen start sideways; everything else
+	 * starts upright.
+	 */
+	private DisplayMode detectDisplayMode() {
+		if (BuildConfig.FULL_EMULATOR) {
+			try {
+				Map<String, String> attrs = new Descriptor(new File(appDir, Config.MIDLET_MANIFEST_FILE), false).getAttrs();
+				String[] keys = {"Nokia-MIDlet-Original-Display-Size", "Nokia-MIDlet-Target-Display-Size"};
+				for (String key : keys) {
+					String value = attrs.get(key);
+					if (value == null) {
+						continue;
+					}
+					String[] parts = value.split(",");
+					if (parts.length == 2) {
+						int w = Integer.parseInt(parts[0].trim());
+						int h = Integer.parseInt(parts[1].trim());
+						return DisplayMode.forSize(w, h);
+					}
+				}
+			} catch (Throwable ignored) {
+				// Not every game says; fall back to upright.
+			}
+		}
+		return DisplayMode.PORTRAIT;
+	}
+
 	void setLimitFps(int fps) {
 		if (fps == -1) Canvas.setLimitFps(params.fpsLimit);
 		else Canvas.setLimitFps(fps);
@@ -238,6 +288,9 @@ public class MicroLoader {
 
 	void applyConfiguration() {
 		try {
+			// rBerry: only two display modes exist. Whatever an old profile says, the display
+			// settings are set from the game's mode every time it starts.
+			DisplayMode.of(params).apply(params);
 			// Apply configuration to the launching MIDlet
 			if (params.showKeyboard) {
 				ContextHolder.setVk(new VirtualKeyboard(params));

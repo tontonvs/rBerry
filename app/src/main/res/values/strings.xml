@@ -316,5 +316,8 @@
     <string name="handheld_pick">PICK</string>
     <string name="handheld_play">PLAY</string>
     <string name="handheld_boot_tagline">by Noven</string>
+    <string name="handheld_menu_landscape">Play sideways (landscape)</string>
+    <string name="handheld_menu_portrait">Play upright (portrait)</string>
+    <string name="handheld_menu_more">More options</string>
 
 </resources>

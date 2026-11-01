@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
+     The game now sits inside the handheld console. Everything declared inside HandheldView goes
+     into its display. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,36 +10,42 @@
     android:layout_height="match_parent"
     tools:context="javax.microedition.shell.MicroActivity">
 
-    <LinearLayout
-        android:id="@+id/virtual_display"
+    <com.noven.rberry.handheld.HandheldView
+        android:id="@+id/handheld"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <View
-            android:id="@+id/statusbar_view"
+        <LinearLayout
+            android:id="@+id/virtual_display"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:background="@color/primary" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/colorPrimary"
-            android:descendantFocusability="blocksDescendants"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-            tools:title="MIDlet Title" />
+            <View
+                android:id="@+id/statusbar_view"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:background="@color/primary" />
 
-        <FrameLayout
-            android:id="@+id/displayable_container"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-    </LinearLayout>
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorPrimary"
+                android:descendantFocusability="blocksDescendants"
+                android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+                app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+                tools:title="MIDlet Title" />
 
-    <!-- MUST be transparent and math root container -->
+            <FrameLayout
+                android:id="@+id/displayable_container"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </com.noven.rberry.handheld.HandheldView>
+
+    <!-- MUST be transparent and match the root container -->
     <javax.microedition.lcdui.overlay.OverlayView
         android:id="@+id/overlay_view"
         android:layout_width="match_parent"

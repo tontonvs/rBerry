@@ -87,7 +87,11 @@ public class HandheldView extends ViewGroup {
     private static final int GRILLE_DARK = 0xFFB4AFBD;
     private static final int GRILLE_LIGHT = 0xFFFFFFFF;
     private static final int BRAND = 0xFFC80A4E;
+    private static final int PAD_ON = 0xFFF6B9CF;
+    private static final int KEY = 0xFFDAD6E0;
+    private static final int KEY_LABEL = 0xFF3A2E44;
 
+    private static final String[] KEY_TEXT = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
     private static final int KEY_COUNT = GameKey.values().length;
     private static final int MAX_POINTERS = 32;
 
@@ -112,6 +116,12 @@ public class HandheldView extends ViewGroup {
     private boolean diagonals;
     private KeyListener listener;
     private BootView bootView;
+    private boolean keypadEnabled;
+    private boolean keypadOpen;
+    private boolean compact;
+    private Runnable onScreenChanged;
+    private final Path patchPath = new Path();
+    private final HandheldGeometry.Box cell = new HandheldGeometry.Box();
 
     private final String pickLabel;
     private final String playLabel;
@@ -127,7 +137,7 @@ public class HandheldView extends ViewGroup {
         playLabel = context.getString(R.string.handheld_play);
         screenHost = new FrameLayout(context);
         screenHost.setBackgroundColor(0xFF1E0B22);
-        addView(screenHost, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        super.addView(screenHost, -1, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         for (int i = 0; i < 4; i++) {
             faceLip[i] = shade(FACE_COLOR[i], 0.70f);
         }
@@ -146,6 +156,66 @@ public class HandheldView extends ViewGroup {
         }
         screenHost.addView(view, 0, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * Lets a layout file put the game inside the console: any child declared in XML goes into the
+     * display, not onto the body.
+     */
+    @Override
+    public void addView(View child, int index, ViewGroup.LayoutParams params) {
+        if (screenHost == null || child == screenHost) {
+            super.addView(child, index, params);
+        } else {
+            screenHost.addView(child, index, params);
+        }
+    }
+
+    /**
+     * Shows the small "123" button that opens the number pad (used by J2ME games). When disabled
+     * the rBerry name is shown there instead.
+     */
+    public void setKeypadEnabled(boolean enabled) {
+        if (keypadEnabled != enabled) {
+            keypadEnabled = enabled;
+            if (!enabled) {
+                keypadOpen = false;
+            }
+            invalidate();
+        }
+    }
+
+    public boolean isKeypadOpen() {
+        return keypadOpen;
+    }
+
+    /**
+     * Compact mode hides the buttons and gives the display the whole window. Used while the
+     * on-screen keyboard is up, so typing has room.
+     */
+    public void setCompact(boolean compact) {
+        if (this.compact != compact) {
+            this.compact = compact;
+            if (compact) {
+                releaseAll();
+            }
+            requestLayout();
+        }
+    }
+
+    /** Left edge of the display inside this view, in pixels. */
+    public int getScreenLeft() {
+        return Math.round(geo.screen.left);
+    }
+
+    /** Top edge of the display inside this view, in pixels. */
+    public int getScreenTop() {
+        return Math.round(geo.screen.top);
+    }
+
+    /** Called after every layout, so things drawn over the display can follow it. */
+    public void setOnScreenChanged(@Nullable Runnable listener) {
+        onScreenChanged = listener;
     }
 
     public void setKeyListener(@Nullable KeyListener listener) {
@@ -212,6 +282,7 @@ public class HandheldView extends ViewGroup {
         int w = MeasureSpec.getSize(widthSpec);
         int h = MeasureSpec.getSize(heightSpec);
         setMeasuredDimension(w, h);
+        geo.compact = compact;
         geo.layout(w, h, getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom());
         int sw = Math.max(1, Math.round(geo.screen.width()));
         int sh = Math.max(1, Math.round(geo.screen.height()));
@@ -224,6 +295,9 @@ public class HandheldView extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int right, int b) {
         screenHost.layout(Math.round(geo.screen.left), Math.round(geo.screen.top),
                 Math.round(geo.screen.right), Math.round(geo.screen.bottom));
+        if (onScreenChanged != null) {
+            onScreenChanged.run();
+        }
     }
 
     private void rebuildPaths() {
@@ -243,6 +317,14 @@ public class HandheldView extends ViewGroup {
         ringPath.setFillType(Path.FillType.EVEN_ODD);
         ringPath.addPath(bezelPath);
         ringPath.addPath(screenPath);
+
+        // The game view is square. Where the bezel curves away at its corners, the body colour
+        // is painted over the leftover square corner (this was the patch at the bottom right).
+        patchPath.rewind();
+        patchPath.setFillType(Path.FillType.EVEN_ODD);
+        r.set(geo.screen.left, geo.screen.top, geo.screen.right, geo.screen.bottom);
+        patchPath.addRect(r, Path.Direction.CW);
+        patchPath.addPath(bezelPath);
 
         float half = geo.dpadSize / 2f;
         float armHalf = geo.dpadArm / 2f;
@@ -271,12 +353,23 @@ public class HandheldView extends ViewGroup {
     protected void onDraw(@NonNull Canvas canvas) {
         canvas.drawColor(BODY);
         int pressed = touchMask | externalMask;
-        drawBrand(canvas);
-        drawShoulder(canvas, geo.shoulderL, "L", (pressed & GameKey.L.mask()) != 0);
-        drawShoulder(canvas, geo.shoulderR, "R", (pressed & GameKey.R.mask()) != 0);
         drawBezel(canvas);
+        if (compact) {
+            return;
+        }
+        if (keypadEnabled) {
+            drawShoulder(canvas, geo.pad, "123", (pressed & GameKey.PAD.mask()) != 0, keypadOpen);
+        } else {
+            drawBrand(canvas);
+        }
+        drawShoulder(canvas, geo.shoulderL, "L", (pressed & GameKey.L.mask()) != 0, false);
+        drawShoulder(canvas, geo.shoulderR, "R", (pressed & GameKey.R.mask()) != 0, false);
         drawDpad(canvas, pressed);
-        drawFaceButtons(canvas, pressed);
+        if (keypadOpen) {
+            drawKeypad(canvas, pressed);
+        } else {
+            drawFaceButtons(canvas, pressed);
+        }
         drawPill(canvas, geo.pick, pickLabel, (pressed & GameKey.PICK.mask()) != 0);
         drawPill(canvas, geo.play, playLabel, (pressed & GameKey.PLAY.mask()) != 0);
         drawGrille(canvas);
@@ -286,6 +379,11 @@ public class HandheldView extends ViewGroup {
     protected void dispatchDraw(@NonNull Canvas canvas) {
         super.dispatchDraw(canvas);
         fill.setStyle(Paint.Style.FILL);
+        canvas.save();
+        canvas.clipRect(geo.screen.left, geo.screen.top, geo.screen.right, geo.screen.bottom);
+        fill.setColor(BODY);
+        canvas.drawPath(patchPath, fill);
+        canvas.restore();
         fill.setColor(BEZEL);
         canvas.drawPath(ringPath, fill);
     }
@@ -312,7 +410,8 @@ public class HandheldView extends ViewGroup {
         canvas.drawPath(bezelPath, fill);
     }
 
-    private void drawShoulder(Canvas canvas, HandheldGeometry.Box box, String label, boolean pressed) {
+    private void drawShoulder(Canvas canvas, HandheldGeometry.Box box, String label, boolean pressed,
+                              boolean latched) {
         float lip = box.height() * 0.2f;
         float dy = pressed ? lip * 0.8f : 0f;
         float radius = box.height() / 2f;
@@ -322,12 +421,12 @@ public class HandheldView extends ViewGroup {
             r.set(box.left, box.top + lip, box.right, box.bottom + lip);
             canvas.drawRoundRect(r, radius, radius, fill);
         }
-        fill.setColor(pressed ? SHOULDER_ON : SHOULDER);
+        fill.setColor(latched ? PAD_ON : (pressed ? SHOULDER_ON : SHOULDER));
         r.set(box.left, box.top + dy, box.right, box.bottom + dy);
         canvas.drawRoundRect(r, radius, radius, fill);
         text.setTypeface(Typeface.DEFAULT_BOLD);
         text.setTextSize(box.height() * 0.62f);
-        text.setColor(SHOULDER_TEXT);
+        text.setColor(latched ? BRAND : SHOULDER_TEXT);
         canvas.drawText(label, box.centerX(), box.centerY() + dy + box.height() * 0.22f, text);
     }
 
@@ -429,6 +528,36 @@ public class HandheldView extends ViewGroup {
         }
     }
 
+    private void drawKeypad(Canvas canvas, int pressed) {
+        HandheldGeometry.Box k = geo.keypad;
+        float pad = Math.min(k.width() / HandheldGeometry.PAD_COLS, k.height() / HandheldGeometry.PAD_ROWS) * 0.06f;
+        fill.setStyle(Paint.Style.FILL);
+        fill.setColor(PLATE);
+        r.set(k.left - pad, k.top - pad, k.right + pad, k.bottom + pad);
+        canvas.drawRoundRect(r, pad * 3f, pad * 3f, fill);
+        text.setTypeface(Typeface.DEFAULT_BOLD);
+        for (int i = 0; i < 12; i++) {
+            geo.keypadCell(i, cell);
+            GameKey key = HandheldGeometry.keypadKey(i);
+            boolean on = (pressed & key.mask()) != 0;
+            float inset = pad * 1.2f;
+            float lip = cell.height() * 0.07f;
+            float dy = on ? lip * 0.8f : 0f;
+            float radius = Math.min(cell.width(), cell.height()) * 0.24f;
+            if (!on) {
+                fill.setColor(SHOULDER_LIP);
+                r.set(cell.left + inset, cell.top + inset + lip, cell.right - inset, cell.bottom - inset + lip);
+                canvas.drawRoundRect(r, radius, radius, fill);
+            }
+            fill.setColor(on ? PAD_ON : KEY);
+            r.set(cell.left + inset, cell.top + inset + dy, cell.right - inset, cell.bottom - inset + dy);
+            canvas.drawRoundRect(r, radius, radius, fill);
+            text.setTextSize(Math.min(cell.width(), cell.height()) * 0.42f);
+            text.setColor(on ? BRAND : KEY_LABEL);
+            canvas.drawText(KEY_TEXT[i], cell.centerX(), cell.centerY() + dy + text.getTextSize() * 0.35f, text);
+        }
+    }
+
     private void drawPill(Canvas canvas, HandheldGeometry.Box box, String label, boolean pressed) {
         float lip = box.height() * 0.26f;
         float dy = pressed ? lip * 0.8f : 0f;
@@ -499,12 +628,12 @@ public class HandheldView extends ViewGroup {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: {
                 int index = event.getActionIndex();
-                setPointer(event.getPointerId(index), geo.hitMask(event.getX(index), event.getY(index), diagonals));
+                setPointer(event.getPointerId(index), hit(event.getX(index), event.getY(index)));
                 return true;
             }
             case MotionEvent.ACTION_MOVE:
                 for (int i = 0; i < event.getPointerCount(); i++) {
-                    setPointer(event.getPointerId(i), geo.hitMask(event.getX(i), event.getY(i), diagonals));
+                    setPointer(event.getPointerId(i), hit(event.getX(i), event.getY(i)));
                 }
                 return true;
             case MotionEvent.ACTION_POINTER_UP:
@@ -517,6 +646,11 @@ public class HandheldView extends ViewGroup {
             default:
                 return super.onTouchEvent(event);
         }
+    }
+
+    private int hit(float x, float y) {
+        int mask = geo.hitMask(x, y, diagonals, keypadOpen);
+        return keypadEnabled ? mask : (mask & ~GameKey.PAD.mask());
     }
 
     /** Updates what one finger is pressing, firing a press or release for every key that changed. */
@@ -561,6 +695,13 @@ public class HandheldView extends ViewGroup {
     }
 
     private void fire(int keyIndex, boolean down) {
+        if (keyIndex == GameKey.PAD.ordinal()) {
+            // The "123" button belongs to the body: a tap opens or closes the number pad.
+            if (!down) {
+                keypadOpen = !keypadOpen;
+            }
+            return;
+        }
         if (listener != null) {
             listener.onKey(GameKey.values()[keyIndex], down);
         }

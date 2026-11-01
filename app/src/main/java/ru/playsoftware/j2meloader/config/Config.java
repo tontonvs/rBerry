@@ -2,6 +2,7 @@
  * Copyright 2018-2019 Nikita Shakarun
  * Copyright 2020-2023 Yury Kharchenko
  * Copyright 2022 Arman Jussupgaliyev
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,7 +142,9 @@ public class Config {
 		File appDir = new File(path);
 		String workDir = appDir.getParentFile().getParent();
 		File file = new File(workDir + Config.MIDLET_CONFIGS_DIR + appDir.getName());
-		if (showSettings || !file.exists()) {
+		// rBerry: a game that has never been started no longer opens the settings screen first;
+		// the engine creates its profile on the first start. Settings are still available on demand.
+		if (showSettings) {
 			Intent intent = new Intent(ACTION_EDIT, Uri.parse(path),
 					context, ConfigActivity.class);
 			intent.putExtra(KEY_MIDLET_NAME, name);

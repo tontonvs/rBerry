@@ -3,6 +3,7 @@
  * Copyright 2017-2021 Nikita Shakarun
  * Copyright 2019-2023 Yury Kharchenko
  * Copyright 2022-2024 Arman Jussupgaliyev
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,6 +70,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.preference.PreferenceManager;
 
+import com.noven.rberry.handheld.DisplayMode;
+import com.noven.rberry.handheld.GameKey;
+import com.noven.rberry.handheld.HandheldKeys;
+import com.noven.rberry.handheld.HandheldView;
+
 import org.acra.ACRA;
 import org.acra.ErrorReporter;
 
@@ -116,6 +122,7 @@ public class MicroActivity extends AppCompatActivity {
 	private int toolbarHeight;
 	private int menuKey;
 	private String appPath;
+	private HandheldKeys handheldKeys;
 
 	public ActivityMicroBinding binding;
 
@@ -134,6 +141,7 @@ public class MicroActivity extends AppCompatActivity {
 		View view = binding.getRoot();
 		setContentView(view);
 		setSupportActionBar(binding.toolbar);
+		setupHandheld();
 
 		actionBarEnabled = sp.getBoolean(PREF_TOOLBAR, false);
 		statusBarEnabled = sp.getBoolean(PREF_STATUSBAR, false);
@@ -209,6 +217,63 @@ public class MicroActivity extends AppCompatActivity {
 		}
 	}
 
+	/** rBerry: connects the console buttons to the game. */
+	private void setupHandheld() {
+		HandheldView handheld = binding.handheld;
+		handheld.setKeypadEnabled(true);
+		handheld.setDiagonalsEnabled(true);
+		handheld.setOnScreenChanged(this::updateOverlayLocation);
+		handheldKeys = new HandheldKeys(this::dispatchKeyEvent);
+		handheld.setKeyListener((key, down) -> {
+			if (key == GameKey.PICK) {
+				if (down) {
+					showGameMenu();
+				}
+			} else {
+				handheldKeys.onKey(key, down);
+			}
+		});
+		handheld.showBoot(null);
+	}
+
+	/** rBerry: the PICK button. A short menu instead of the long overflow menu. */
+	private void showGameMenu() {
+		boolean canvas = current instanceof Canvas;
+		DisplayMode mode = microLoader != null ? microLoader.getDisplayMode() : DisplayMode.PORTRAIT;
+		java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+		java.util.ArrayList<Runnable> actions = new java.util.ArrayList<>();
+		if (inputMethodManager != null) {
+			labels.add(getString(R.string.action_keyboard_ime));
+			actions.add(() -> inputMethodManager.toggleSoftInputFromWindow(
+					binding.displayableContainer.getWindowToken(), InputMethodManager.SHOW_FORCED, 0));
+		}
+		if (canvas) {
+			labels.add(getString(R.string.take_screenshot));
+			actions.add(this::takeScreenshot);
+		}
+		if (microLoader != null) {
+			labels.add(getString(mode == DisplayMode.PORTRAIT
+					? R.string.handheld_menu_landscape : R.string.handheld_menu_portrait));
+			actions.add(() -> switchDisplayMode(mode.other()));
+		}
+		labels.add(getString(R.string.handheld_menu_more));
+		actions.add(this::openOptionsMenu);
+		labels.add(getString(R.string.exit));
+		actions.add(this::showExitConfirmation);
+		new AlertDialog.Builder(this)
+				.setTitle(appName)
+				.setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
+				.show();
+	}
+
+	/** rBerry: restarts the game in the other display mode and remembers the choice for it. */
+	private void switchDisplayMode(DisplayMode mode) {
+		microLoader.saveDisplayMode(mode);
+		hideSoftInput();
+		Config.startApp(this, appName, appPath, false);
+		MidletThread.destroyApp();
+	}
+
 	public void lockNightMode() {
 		int current = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
 		if (current == Configuration.UI_MODE_NIGHT_YES) {
@@ -228,6 +293,9 @@ public class MicroActivity extends AppCompatActivity {
 	@Override
 	public void onPause() {
 		visible = false;
+		if (handheldKeys != null) {
+			handheldKeys.releaseAll();
+		}
 		hideSoftInput();
 		MidletThread.pauseApp();
 		super.onPause();
@@ -323,11 +391,8 @@ public class MicroActivity extends AppCompatActivity {
 	}
 
 	private void setupInsets() {
-		EdgeToEdge.enable(
-				this,
-				SystemBarStyle.dark(ContextCompat.getColor(this, R.color.primary)),
-				SystemBarStyle.dark(Color.BLACK)
-		);
+		// rBerry: light system bars over the console body colour.
+		HandheldView.applyWindowChrome(this);
 
 		ViewCompat.setOnApplyWindowInsetsListener(binding.midletFrame, (v, windowInsets) -> {
 			int typeMask = WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime();
@@ -335,13 +400,17 @@ public class MicroActivity extends AppCompatActivity {
 				typeMask |= WindowInsetsCompat.Type.displayCutout();
 			}
 			Insets insets = windowInsets.getInsets(typeMask);
-			statusBarInset = insets.top;
+			// rBerry: the console is pushed below the status bar by the padding itself, so the
+			// coloured spacer inside the display stays empty.
+			statusBarInset = 0;
 
 			ViewGroup.LayoutParams params = binding.statusbarView.getLayoutParams();
-			params.height = insets.top;
+			params.height = 0;
 			binding.statusbarView.setLayoutParams(params);
 
-			v.setPadding(insets.left, 0, insets.right, insets.bottom);
+			v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+			// While the on-screen keyboard is up the buttons make room for it.
+			binding.handheld.setCompact(windowInsets.isVisible(WindowInsetsCompat.Type.ime()));
 			updateOverlayLocation();
 			return WindowInsetsCompat.CONSUMED;
 		});
@@ -356,6 +425,7 @@ public class MicroActivity extends AppCompatActivity {
 					return;
 				}
 				imeVisible = visible;
+				binding.handheld.setCompact(visible);
 				if (current instanceof Canvas) {
 					if (visible) {
 						showSystemUI();
@@ -368,7 +438,10 @@ public class MicroActivity extends AppCompatActivity {
 	}
 
 	private void updateOverlayLocation() {
-		binding.overlayView.setLocation(0, statusBarInset + toolbarHeight);
+		// rBerry: things drawn over the game follow the display inside the console.
+		binding.overlayView.setLocation(binding.handheld.getScreenLeft(),
+				statusBarInset + binding.handheld.getScreenTop() + toolbarHeight);
+		binding.overlayView.invalidate();
 	}
 
 	private WindowInsetsControllerCompat getWindowInsetsController() {

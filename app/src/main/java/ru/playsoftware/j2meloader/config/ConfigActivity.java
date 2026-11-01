@@ -1,6 +1,7 @@
 /*
  * Copyright 2018 Nikita Shakarun
  * Copyright 2020 Yury Kharchenko
+ * Modified 2026 by Noven (tontonvs) for rBerry. See the NOTICE file.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -180,7 +181,9 @@ public class ConfigActivity extends BaseActivity implements View.OnClickListener
 		defProfile = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
 				.getString(PREF_DEFAULT_PROFILE, null);
 		loadConfig();
-		if (!params.isNew && !needShow) {
+		// rBerry: never show the settings screen unless it was asked for; the engine creates the
+		// profile for a new game by itself.
+		if (!needShow) {
 			startMIDlet();
 			return;
 		}
@@ -615,6 +618,27 @@ public class ConfigActivity extends BaseActivity implements View.OnClickListener
 		return result;
 	}
 
+	/**
+	 * rBerry: screen size, scaling, position, orientation and the on-screen keypad are fixed by the
+	 * console (portrait or landscape, picture always fitted and centred), so these settings are
+	 * not shown. Their values are still loaded and saved, but the engine overrides them.
+	 */
+	private void hideFixedDisplaySettings() {
+		View[] fixed = {
+				binding.showScreenSizePresets, binding.screenWidth, binding.swapScreenSides,
+				binding.screenHeight, binding.addScreenSizeToPresets, binding.keepAspectRatioToggle,
+				binding.selectScreenBackgroundColor, binding.screenBackgroundHexColor,
+				binding.scaleRatioHint, binding.scaleRatio, binding.screenOrientationHint,
+				binding.screenOrientationSelector, binding.screenGravityHint,
+				binding.screenGravitySelector, binding.scaleTypeHint, binding.scaleTypeSelector,
+				binding.filteringToggle, binding.showVirtualKeyboardToggle,
+				binding.virtualKeyboardConfigGroup
+		};
+		for (View v : fixed) {
+			v.setVisibility(View.GONE);
+		}
+	}
+
 	@SuppressLint("SetTextI18n")
 	public void loadParams(boolean reloadFromFile) {
 		if (reloadFromFile) {
@@ -657,6 +681,7 @@ public class ConfigActivity extends BaseActivity implements View.OnClickListener
 		boolean showVk = params.showKeyboard;
 		binding.showVirtualKeyboardToggle.setChecked(showVk);
 		binding.virtualKeyboardConfigGroup.setVisibility(showVk ? View.VISIBLE : View.GONE);
+		hideFixedDisplaySettings();
 		binding.enableHapticFeedbackToggle.setChecked(params.vkFeedback);
 		binding.forceOpacityForOffscreenKeysToggle.setChecked(params.vkForceOpacity);
 		binding.enableTouchInputToggle.setChecked(params.touchInput);
