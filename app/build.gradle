@@ -15,7 +15,8 @@ android {
         applicationId "com.noven.rberry"
         minSdk MIN_SDK
         targetSdk TARGET_SDK
-        versionCode 1
+        // rBerry: the build server passes its run number so every build has a higher version.
+        versionCode Integer.parseInt(System.getenv('RBERRY_VERSION_CODE') ?: '1')
         versionName "0.1.0"
         resValue 'string', 'app_name', rootProject.name
         vectorDrawables.useSupportLibrary = true
@@ -27,6 +28,17 @@ android {
     }
 
     signingConfigs {
+        // rBerry: one fixed key for debug builds (the standard public debug key, committed as
+        // app/debug.keystore). Without it every build is signed with a new random key and Android
+        // refuses to install a new build over the old one.
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        // The release key stays private: keystore.properties is written by the build server from
+        // secrets and is never committed.
         release {
             Properties keystoreProps = new Properties()
             File keystorePropsFile = rootProject.file("keystore.properties")
@@ -47,6 +59,7 @@ android {
             signingConfig signingConfigs.release
         }
         debug {
+            signingConfig signingConfigs.debug
             applicationIdSuffix '.debug'
             jniDebuggable true
             multiDexEnabled true

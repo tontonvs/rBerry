@@ -42,6 +42,8 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Build debug APK
+        env:
+          RBERRY_VERSION_CODE: ${{ github.run_number }}
         run: |
           chmod +x gradlew
           ./gradlew assembleOpenDebug --stacktrace
@@ -51,6 +53,15 @@ jobs:
           mkdir -p dist
           find app/build/outputs/apk/open/debug -name '*.apk' -exec cp {} dist/rBerry-debug.apk \;
           ls -lh dist
+
+      - name: Show the signing key (must be the same in every build)
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1)"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs dist/rBerry-debug.apk | grep -E "certificate (DN|SHA-256)" || true
+          else
+            echo "apksigner not found on this runner, skipping."
+          fi
 
       - name: Upload APK as workflow artifact
         uses: actions/upload-artifact@v4
@@ -68,3 +79,108 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "rBerry latest debug build" \
             --notes "Automated debug build of commit $GITHUB_SHA. Install on a phone by opening this page and downloading rBerry-debug.apk."
+
+  # Signed release APK. Only runs its steps once the four RBERRY_* secrets exist in
+  # Settings > Secrets and variables > Actions (make_rberry_release_key.sh sets them for you).
+  build-release:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check for the release key
+        id: key
+        env:
+          KEYSTORE: ${{ secrets.RBERRY_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RBERRY_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RBERRY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RBERRY_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No release key secrets found, so no signed release was built. Run make_rberry_release_key.sh once to create them."
+          fi
+
+      - name: Checkout
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        if: steps.key.outputs.present == 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        if: steps.key.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Write the release key for Gradle
+        if: steps.key.outputs.present == 'true'
+        env:
+          KEYSTORE: ${{ secrets.RBERRY_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RBERRY_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RBERRY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RBERRY_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/rberry-release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/rberry-release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build release APK
+        if: steps.key.outputs.present == 'true'
+        env:
+          RBERRY_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleOpenRelease --stacktrace
+
+      - name: Collect APK
+        if: steps.key.outputs.present == 'true'
+        run: |
+          mkdir -p dist
+          find app/build/outputs/apk/open/release -name '*.apk' -exec cp {} dist/rBerry.apk \;
+          ls -lh dist
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1)"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs dist/rBerry.apk | grep -E "certificate (DN|SHA-256)" || true
+          fi
+
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/rberry-release.jks"
+
+      - name: Upload APK as workflow artifact
+        if: steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rBerry-release-apk
+          path: dist/rBerry.apk
+
+      - name: Publish APK to the "latest-release" release
+        if: steps.key.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-release --cleanup-tag --yes || true
+          gh release create latest-release dist/rBerry.apk \
+            --latest=false \
+            --target "$GITHUB_SHA" \
+            --title "rBerry latest signed build" \
+            --notes "Signed release build of commit $GITHUB_SHA. Updates install over the previous signed build."
