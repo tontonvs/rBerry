@@ -76,6 +76,9 @@ public enum DisplayMode {
         params.screenScaleToFit = true;
         params.screenKeepAspectRatio = true;
         params.screenFilter = true;
+        // Black behind the picture, so the side strips of a picture that is narrower than the
+        // display blend with the black most games draw, instead of showing J2ME Loader's grey.
+        params.screenBackgroundColor = 0x000000;
         // The console buttons replace the on-screen keypad that J2ME Loader draws over the game.
         params.showKeyboard = false;
         params.touchInput = true;

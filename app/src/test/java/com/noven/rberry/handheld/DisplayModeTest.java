@@ -35,6 +35,7 @@ public class DisplayModeTest {
         p.screenGravity = 4;
         p.screenFilter = false;
         p.showKeyboard = true;
+        p.screenBackgroundColor = 0xD0D0D0;
         return p;
     }
 
@@ -50,6 +51,7 @@ public class DisplayModeTest {
         assertEquals(2, p.screenGravity);
         assertTrue(p.screenFilter && p.screenScaleToFit && p.screenKeepAspectRatio);
         assertFalse(p.showKeyboard);
+        assertEquals(0x000000, p.screenBackgroundColor);
     }
 
     @Test
