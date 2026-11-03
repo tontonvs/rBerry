@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- rBerry: full-bleed icon. The pink background fills the whole icon (no border), the berry
-     stays in the middle so any launcher shape (circle, squircle, rounded square) fits it. -->
+<!-- rBerry: pixel-art icon. A black background fills the whole icon so the berry's outline reaches the
+     edge of every launcher shape (circle, squircle, rounded square). -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@mipmap/ic_launcher_background"/>
     <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
