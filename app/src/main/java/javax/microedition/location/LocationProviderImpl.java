@@ -25,7 +25,6 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import javax.microedition.util.ContextHolder;
@@ -212,18 +211,10 @@ public class LocationProviderImpl extends LocationProvider implements android.lo
     }
 
     protected static void requestLocationPermission() {
+        // rBerry does not declare the location permission, so it can never be granted.
+        // Fail straight away instead of waiting for an answer that will never come.
         if (ContextCompat.checkSelfPermission(ContextHolder.getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(ContextHolder.getActivity(), new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            try {
-                synchronized (LocationProviderImpl.permissionLock) {
-                    permissionLock.wait();
-                }
-            } catch (InterruptedException e) {
-                return;
-            }
-            if (!permissionResult) {
-                throw new SecurityException();
-            }
+            throw new SecurityException("Location access is not available in rBerry");
         }
     }
 

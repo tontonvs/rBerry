@@ -144,7 +144,9 @@ public class ContextHolder {
 			return false;
 		}
 		if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-			ActivityCompat.requestPermissions(context, new String[]{permission}, 0);
+			if (isDeclared(context, permission)) {
+				ActivityCompat.requestPermissions(context, new String[]{permission}, 0);
+			}
 			return false;
 		} else {
 			return true;
@@ -157,10 +159,34 @@ public class ContextHolder {
 			return false;
 		}
 		if (!hasPermissions(context, permissions)) {
+			for (String permission : permissions) {
+				if (!isDeclared(context, permission)) {
+					return false;
+				}
+			}
 			ActivityCompat.requestPermissions(context, permissions, 0);
 			return false;
 		} else {
 			return true;
+		}
+	}
+
+	/** True when the app lists the permission in its manifest (rBerry no longer lists camera, mic, location, Bluetooth or notifications). */
+	@SuppressWarnings("deprecation")
+	private static boolean isDeclared(Context context, String permission) {
+		try {
+			PackageInfo info = context.getPackageManager()
+					.getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS);
+			if (info.requestedPermissions != null) {
+				for (String requested : info.requestedPermissions) {
+					if (permission.equals(requested)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		} catch (Exception e) {
+			return true; // cannot tell: keep the old behaviour
 		}
 	}
 

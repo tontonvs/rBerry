@@ -78,8 +78,6 @@ import com.noven.rberry.handheld.HandheldKeys;
 import com.noven.rberry.handheld.HandheldView;
 import com.noven.rberry.handheld.KeyFeedback;
 
-import org.acra.ACRA;
-import org.acra.ErrorReporter;
 
 import java.io.File;
 import java.io.IOException;
@@ -389,14 +387,6 @@ public class MicroActivity extends AppCompatActivity {
 				.setTitle(R.string.select_dialog_title)
 				.setItems(names, (d, n) -> {
 					String clazz = classes[n];
-					ErrorReporter errorReporter = ACRA.getErrorReporter();
-					String report = errorReporter.getCustomData(Constants.KEY_APPCENTER_ATTACHMENT);
-					StringBuilder sb = new StringBuilder();
-					if (report != null) {
-						sb.append(report).append("\n");
-					}
-					sb.append("Begin app: ").append(names[n]).append(", ").append(clazz);
-					errorReporter.putCustomData(Constants.KEY_APPCENTER_ATTACHMENT, sb.toString());
 					MidletThread.create(microLoader, clazz);
 					MidletThread.resumeApp();
 				})

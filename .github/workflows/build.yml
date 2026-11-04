@@ -143,19 +143,20 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
-      - name: Build release APK
+      - name: Build release APK and Play Store bundle
         if: steps.key.outputs.present == 'true'
         env:
           RBERRY_VERSION_CODE: ${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleOpenRelease --stacktrace
+          ./gradlew assembleOpenRelease bundleOpenRelease --stacktrace
 
       - name: Collect APK
         if: steps.key.outputs.present == 'true'
         run: |
           mkdir -p dist
           find app/build/outputs/apk/open/release -name '*.apk' -exec cp {} dist/rBerry.apk \;
+          find app/build/outputs/bundle/openRelease -name '*.aab' -exec cp {} dist/rBerry.aab \;
           ls -lh dist
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1)"
           if [ -n "$APKSIGNER" ]; then
@@ -170,8 +171,10 @@ jobs:
         if: steps.key.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: rBerry-release-apk
-          path: dist/rBerry.apk
+          name: rBerry-release
+          path: |
+            dist/rBerry.apk
+            dist/rBerry.aab
 
       - name: Publish APK to the "latest-release" release
         if: steps.key.outputs.present == 'true'
@@ -179,8 +182,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest-release --cleanup-tag --yes || true
-          gh release create latest-release dist/rBerry.apk \
+          gh release create latest-release dist/rBerry.apk dist/rBerry.aab \
             --latest=false \
             --target "$GITHUB_SHA" \
             --title "rBerry latest signed build" \
-            --notes "Signed release build of commit $GITHUB_SHA. Updates install over the previous signed build."
+            --notes "Signed release build of commit $GITHUB_SHA. rBerry.apk installs on a phone; rBerry.aab is the Play Store bundle. Updates install over the previous signed build."

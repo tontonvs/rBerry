@@ -20,8 +20,14 @@ Early development. See the latest debug build under
 
 Builds run in GitHub Actions (see `.github/workflows/build.yml`) and publish a
 debug APK to the `latest-build` pre-release on every push to `master`.
+Once the release key secrets exist, the same run also publishes a signed APK and a
+Play Store bundle (`.aab`) to the `latest-release` release.
 Local builds need JDK 21, the Android SDK and NDK, and the submodules
 (`git submodule update --init`).
+
+## Privacy
+
+rBerry collects no data. See [docs/privacy-policy.html](docs/privacy-policy.html).
 
 ## License and credits
 

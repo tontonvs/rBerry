@@ -30,7 +30,11 @@ public abstract class LocationProvider {
 	protected static boolean networkProviderEnabled;
 
 	private static void initLocationManager() throws LocationException {
-		LocationProviderImpl.requestLocationPermission();
+		try {
+			LocationProviderImpl.requestLocationPermission();
+		} catch (SecurityException e) {
+			throw new LocationException("Location is not available");
+		}
 		if (locationManager == null) {
 			locationManager = (LocationManager) ContextHolder.getActivity().getSystemService(Context.LOCATION_SERVICE);
 		}
